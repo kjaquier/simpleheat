@@ -6,6 +6,28 @@
 
 (function () { 'use strict';
 
+function Matrix(w, h, array) {
+    this.h = w;
+    this.w = h;
+    this.array = array;
+
+    this.get = function(x, y) {
+        return this.array[this.getIndex(x, y)];
+    };
+    this.set = function(x, y, value) {
+        this.array[this.getIndex(x, y)] = value;
+    };
+    this.getIndex = function(x, y) {
+        return this.w * y + x;
+    };
+    this.getCoords = function (idx) {
+        return [~~(idx / this.w), idx % this.w];
+    };
+    this.length = function() {
+        return this.w * this.h;
+    };
+}
+
 function simpleheat(canvas) {
     // jshint newcap: false, validthis: true
     if (!(this instanceof simpleheat)) { return new simpleheat(canvas); }
@@ -15,9 +37,12 @@ function simpleheat(canvas) {
     this._ctx = canvas.getContext('2d');
     this._width = canvas.width;
     this._height = canvas.height;
+    this._r = 1;
 
     this._max = 1;
     this._data = [];
+    this._drawFunc = this.drawPoints;
+    this._addPointFunc = this.pushPoint;
 }
 
 simpleheat.prototype = {
@@ -32,8 +57,17 @@ simpleheat.prototype = {
         1.0: 'red'
     },
 
+    dataMatrix: function (w, h, dataMatrix) {
+        this._dataMatrix = new Matrix(w, h, dataMatrix);
+        this._drawFunc = this.drawMatrix;
+        this._addPointFunc = this.addPointInMatrix;
+        return this;
+    },
+
     data: function (data) {
         this._data = data;
+        this._drawFunc = this.drawPoints;
+        this._addPointFunc = this.pushPoint;
         return this;
     },
 
@@ -43,7 +77,19 @@ simpleheat.prototype = {
     },
 
     add: function (point) {
+        return this._addPointFunc(point);
+    },
+
+    pushPoint: function(point) {
         this._data.push(point);
+        return this;
+    },
+
+    addPointInMatrix: function(point) {
+        var mat = this._dataMatrix;
+        var x = ~~((point[0] / this._width) * mat.w);
+        var y = ~~((point[1] / this._height) * mat.h);
+        mat.set(x, y, Math.min(mat.get(x, y) + point[2], this._max));
         return this;
     },
 
@@ -52,26 +98,41 @@ simpleheat.prototype = {
         return this;
     },
 
-    radius: function (r, blur) {
-        blur = blur || 15;
+    pointStyle: function(attrs) {
+        var blur = attrs.blur || 0;
+        var radius = attrs.radius || (this._dataMatrix === undefined ? 1 : this._getAutoRadius());
 
         // create a grayscale blurred circle image that we'll use for drawing points
         var circle = this._circle = document.createElement('canvas'),
             ctx = circle.getContext('2d'),
-            r2 = this._r = r + blur;
+            r2 = this._r = radius + blur;
 
         circle.width = circle.height = r2 * 2;
 
-        ctx.shadowOffsetX = ctx.shadowOffsetY = 200;
-        ctx.shadowBlur = blur;
-        ctx.shadowColor = 'black';
+        if (blur > 0) {
+            var offset = 200;
+            ctx.shadowOffsetX = ctx.shadowOffsetY = offset;
+            ctx.shadowBlur = blur;
+            ctx.shadowColor = 'black';
+        } else {
+            var offset = 0;
+        }
 
         ctx.beginPath();
-        ctx.arc(r2 - 200, r2 - 200, r, 0, Math.PI * 2, true);
+        ctx.arc(r2 - offset, r2 - offset, radius, 0, Math.PI * 2, true);
         ctx.closePath();
         ctx.fill();
 
         return this;
+    },
+
+    _getAutoRadius: function() {
+        if (this._dataMatrix === undefined) {
+            return this;
+        }
+        var wRadius = ~~(this._width / this._dataMatrix.w);
+        var hRadius = ~~(this._height / this._dataMatrix.h);
+        return Math.min(wRadius, hRadius) / 2;
     },
 
     gradient: function (grad) {
@@ -96,8 +157,48 @@ simpleheat.prototype = {
     },
 
     draw: function (minOpacity) {
+        return this._drawFunc(minOpacity);
+    },
+
+    drawMatrix: function (minOpacity) {
         if (!this._circle) {
-            this.radius(this.defaultRadius);
+            this.pointStyle({ radius: this.defaultRadius });
+        }
+        if (!this._grad) {
+            this.gradient(this.defaultGradient);
+        }
+
+        var ctx = this._ctx;
+
+        ctx.clearRect(0, 0, this._width, this._height);
+
+        // draw a grayscale heatmap by putting a blurred circle at each data point
+        var mat = this._dataMatrix;
+        var data = mat.array;
+        for (var i = 0, len = mat.length(), p, px, py; i < len; i++) {
+            p = data[i];
+            // get (x,y) coords from index i and normalize them in
+            // the actual coord space of the canvas
+            py = mat.getCoords(i)[0];
+            px = mat.getCoords(i)[1];
+
+            py = ~~((py / mat.h) * this._height);
+            px = ~~((px / mat.w) * this._width);
+
+            ctx.globalAlpha = Math.max(p / this._max, minOpacity === undefined ? 0.05 : minOpacity);
+            ctx.drawImage(this._circle, px - this._r, py - this._r);
+        }
+        // colorize the heatmap, using opacity value of each pixel to get the right color from our gradient
+        var colored = ctx.getImageData(0, 0, this._width, this._height);
+        this._colorize(colored.data, this._grad);
+        ctx.putImageData(colored, 0, 0);
+
+        return this;
+    },
+
+    drawPoints: function (minOpacity) {
+        if (!this._circle) {
+            this.pointStyle({ radius: this.defaultRadius });
         }
         if (!this._grad) {
             this.gradient(this.defaultGradient);

@@ -22,8 +22,8 @@
 </p>
 <div class="container">
     <div class="options">
-        <label>Radius </label><input type="range" id="radius" value="25" min="10" max="50" /><br />
-        <label>Blur </label><input type="range" id="blur" value="15" min="10" max="50" />
+        <label>Radius </label><input type="range" id="radius" value="25" min="1" max="50" /><br />
+        <label>Blur </label><input type="range" id="blur" value="15" min="1" max="50" />
     </div>
     <canvas id="canvas" width="1000" height="600"></canvas>
 </div>
@@ -39,7 +39,10 @@ function get(id) {
     return document.getElementById(id);
 }
 
-var heat = simpleheat('canvas').data(data).max(18),
+var heat = simpleheat('canvas')
+                .dataMatrix(60, 100, data)
+                .pointStyle({ blur: 0 })
+                .max(10),
     frame;
 
 function draw() {
@@ -61,7 +64,10 @@ var radius = get('radius'),
     changeType = 'oninput' in radius ? 'oninput' : 'onchange';
 
 radius[changeType] = blur[changeType] = function (e) {
-    heat.radius(+radius.value, +blur.value);
+    heat.pointStyle({
+        //radius: +radius.value,
+        blur: +blur.value
+    });
     frame = frame || window.requestAnimationFrame(draw);
 };
 
