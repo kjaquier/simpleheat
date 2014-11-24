@@ -7,8 +7,8 @@
 (function () { 'use strict';
 
 function Matrix(w, h, array) {
-    this.h = w;
-    this.w = h;
+    this.rows = w;
+    this.columns = h;
     this.array = array;
 
     this.get = function(x, y) {
@@ -18,13 +18,13 @@ function Matrix(w, h, array) {
         this.array[this.getIndex(x, y)] = value;
     };
     this.getIndex = function(x, y) {
-        return this.w * y + x;
+        return this.columns * y + x;
     };
     this.getCoords = function (idx) {
-        return [~~(idx / this.w), idx % this.w];
+        return [~~(idx / this.columns), idx % this.columns];
     };
     this.length = function() {
-        return this.w * this.h;
+        return this.columns * this.rows;
     };
 }
 
@@ -87,8 +87,8 @@ simpleheat.prototype = {
 
     addPointInMatrix: function(point) {
         var mat = this._dataMatrix;
-        var x = ~~((point[0] / this._width) * mat.w);
-        var y = ~~((point[1] / this._height) * mat.h);
+        var x = ~~((point[0] / this._width) * mat.columns);
+        var y = ~~((point[1] / this._height) * mat.rows);
         mat.set(x, y, Math.min(mat.get(x, y) + point[2], this._max));
         return this;
     },
@@ -130,8 +130,8 @@ simpleheat.prototype = {
         if (this._dataMatrix === undefined) {
             return this;
         }
-        var wRadius = ~~(this._width / this._dataMatrix.w);
-        var hRadius = ~~(this._height / this._dataMatrix.h);
+        var wRadius = ~~(this._width / this._dataMatrix.columns);
+        var hRadius = ~~(this._height / this._dataMatrix.rows);
         return Math.min(wRadius, hRadius) / 2;
     },
 
@@ -185,8 +185,8 @@ simpleheat.prototype = {
             py = mat.getCoords(i)[0] + 0.5;
             px = mat.getCoords(i)[1] + 0.5;
 
-            py = ~~((py / mat.h) * h);
-            px = ~~((px / mat.w) * w);
+            py = ~~((py / mat.rows) * h);
+            px = ~~((px / mat.columns) * w);
 
             ctx.globalAlpha = Math.max(p / this._max, minOpacity === undefined ? 0.05 : minOpacity);
             ctx.drawImage(this._circle, px + offsetX, py + offsetY);
