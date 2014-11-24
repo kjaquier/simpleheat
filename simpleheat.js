@@ -58,7 +58,7 @@ simpleheat.prototype = {
     },
 
     dataMatrix: function (w, h, dataMatrix) {
-        this._dataMatrix = new Matrix(w, h, dataMatrix);
+        this._dataMatrix = new Matrix(h, w, dataMatrix);
         this._drawFunc = this.drawMatrix;
         this._addPointFunc = this.addPointInMatrix;
         return this;
@@ -175,18 +175,21 @@ simpleheat.prototype = {
         // draw a grayscale heatmap by putting a blurred circle at each data point
         var mat = this._dataMatrix;
         var data = mat.array;
+        var h = this._height, w = this._width;
+        var offsetX = -this._r,
+            offsetY = -this._r;
         for (var i = 0, len = mat.length(), p, px, py; i < len; i++) {
             p = data[i];
             // get (x,y) coords from index i and normalize them in
             // the actual coord space of the canvas
-            py = mat.getCoords(i)[0];
-            px = mat.getCoords(i)[1];
+            py = mat.getCoords(i)[0] + 0.5;
+            px = mat.getCoords(i)[1] + 0.5;
 
-            py = ~~((py / mat.h) * this._height);
-            px = ~~((px / mat.w) * this._width);
+            py = ~~((py / mat.h) * h);
+            px = ~~((px / mat.w) * w);
 
             ctx.globalAlpha = Math.max(p / this._max, minOpacity === undefined ? 0.05 : minOpacity);
-            ctx.drawImage(this._circle, px - this._r, py - this._r);
+            ctx.drawImage(this._circle, px + offsetX, py + offsetY);
         }
         // colorize the heatmap, using opacity value of each pixel to get the right color from our gradient
         var colored = ctx.getImageData(0, 0, this._width, this._height);
