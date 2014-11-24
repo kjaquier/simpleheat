@@ -2,7 +2,7 @@
   "name": "simpleheat",
   "version": "0.2.0",
   "description": "A tiny JavaScript library for drawing heatmaps with Canvas",
-  "homepage": "https://github.com/mourner/simpleheat",
+  "homepage": "https://github.com/kjaquier/simpleheat",
   "keywords": [
     "heatmap",
     "canvas",
@@ -11,7 +11,7 @@
   "author": "Vladimir Agafonkin",
   "repository": {
     "type": "git",
-    "url": "git://github.com/mourner/simpleheat.git"
+    "url": "git://github.com/kjaquier/simpleheat.git"
   },
   "main": "simpleheat.js",
   "scripts": {
